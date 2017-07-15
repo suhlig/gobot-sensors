@@ -1,0 +1,17 @@
+---
+- name: Deploy the sensors bot
+  hosts: all
+
+  vars_files:
+    - private-variables.yml
+
+  vars:
+    - influxdb_host: influxdb.uhlig.it
+    - influxdb_port: 443
+    - influxdb_url: https://{{ influxdb_host }}:{{ influxdb_port }}
+    - influxdb_admin_user:  admin 
+    - influxdb_database: metrics
+    - influxdb_user: sensors
+  
+  roles:
+    - sensors

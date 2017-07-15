@@ -1,0 +1,13 @@
+[Unit]
+Description=Sensors Bot
+After=network-online.target
+
+[Service]
+Environment="INFLUXDB_PASSWORD={{ influxdb_password }}"
+ExecStart=/usr/local/bin/sensors --influxdb-url {{ influxdb_url }} --influxdb-database {{ influxdb_database }} --influxdb-user {{ influxdb_user }}
+Type=simple
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+Alias=sensors.service
