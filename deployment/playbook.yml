@@ -14,4 +14,5 @@
     - influxdb_user: sensors
   
   roles:
+    - influxdb-client
     - sensors
