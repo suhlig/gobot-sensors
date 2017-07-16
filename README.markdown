@@ -46,3 +46,7 @@ Ansible will also create the InfluxDB database, a R/O user for Grafana and a R/W
 * If you try to read a value from the sensor and get a panic from Go, double-check that the device is registered with the framework (e.g. `[]gobot.Device{bme280}`).
 
 * If you get an error `Humidity disabled`, simply restart the service. The sensor exposes this value only on after the first attempt to read it (check the data sheet).
+
+# TODO
+
+* Exit on humidity read failure so that systemd restarts the daemon
