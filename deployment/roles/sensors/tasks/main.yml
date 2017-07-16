@@ -46,11 +46,17 @@
   become: true
   tags: sensors,systemd
 
+- name: Enable the service
+  systemd:
+    name: sensors
+    enabled: true
+  become: true
+  tags: sensors,systemd
+
 - name: Start the service
   systemd:
     name: sensors
     daemon_reload: true
     state: restarted
-    enabled: true
   become: true
   tags: sensors,systemd
