@@ -36,7 +36,7 @@
     dest: "/usr/local/bin/sensors"
     mode: "0755"
   become: true
-  tags: sensors,debug
+  tags: sensors
 
 - name: Create systemd service config
   template:
