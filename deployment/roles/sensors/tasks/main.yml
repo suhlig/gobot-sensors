@@ -1,7 +1,7 @@
 - name: Create influxdb database
-  shell: "influx 
-            -host '{{ influxdb_host }}' 
-            -ssl 
+  shell: "influx
+            -host '{{ influxdb_host }}'
+            -ssl
             -port {{ influxdb_port }}
             -username {{ influxdb_admin_user }}
             -password {{ influxdb_admin_password }}
@@ -10,8 +10,8 @@
 
 - name: Create influxdb user with R/W access
   shell: "influx
-            -host '{{ influxdb_host }}' 
-            -ssl 
+            -host '{{ influxdb_host }}'
+            -ssl
             -port {{ influxdb_port }}
             -username {{ influxdb_admin_user }}
             -password {{ influxdb_admin_password }}
@@ -21,8 +21,8 @@
 
 - name: Create influxdb user for Grafana with READ-only access
   shell: "influx
-            -host '{{ influxdb_host }}' 
-            -ssl 
+            -host '{{ influxdb_host }}'
+            -ssl
             -port {{ influxdb_port }}
             -username {{ influxdb_admin_user }}
             -password {{ influxdb_admin_password }}
