@@ -72,15 +72,18 @@ func main() {
 			broadband, ir, err := luxSensor.GetLuminocity()
 
 			if err != nil {
-				fmt.Println("Err:", err)
+				fmt.Println("Error reading luminocity: ", err)
 			} else {
 				light := luxSensor.CalculateLux(broadband, ir)
-				fmt.Printf("Light: %v lux\n", light)
 
-				err = publish(influxClient, "light", float64(light))
-
-				if err != nil {
-					fmt.Println("Error publishing light to InfluxDB:", err)
+				if light > 10000 {
+					fmt.Printf("Ignoring value of %v lux; this is an outlier.\n", light)
+				} else {
+					fmt.Printf("Light: %v lux\n", light)
+					err = publish(influxClient, "light", float64(light))
+					if err != nil {
+						fmt.Println("Error publishing light to InfluxDB: ", err)
+					}
 				}
 			}
 
@@ -93,34 +96,34 @@ func main() {
 				err = publish(influxClient, "humidity", float64(humidity))
 
 				if err != nil {
-					fmt.Println("Error publishing humidity to InfluxDB:", err)
+					fmt.Println("Error publishing humidity to InfluxDB: ", err)
 				}
 			}
 
 			temperature, err := bme280.Temperature()
 
 			if err != nil {
-				fmt.Println("Error reading temperature:", err)
+				fmt.Println("Error reading temperature: ", err)
 			} else {
 				fmt.Printf("Temperature: %v °C\n", temperature)
 				err = publish(influxClient, "temperature", float64(temperature))
 
 				if err != nil {
-					fmt.Println("Error publishing temperature to InfluxDB:", err)
+					fmt.Println("Error publishing temperature to InfluxDB: ", err)
 				}
 			}
 
 			pressure, err := bme280.Pressure()
 
 			if err != nil {
-				fmt.Println("Error reading pressure:", err)
+				fmt.Println("Error reading pressure: ", err)
 			} else {
 				hPa := pressure / 100 // Grafana wants hectopascal
 				fmt.Printf("Pressure: %v hPa\n", hPa)
 				err = publish(influxClient, "pressure", float64(hPa))
 
 				if err != nil {
-					fmt.Println("Error publishing pressure to InfluxDB:", err)
+					fmt.Println("Error publishing pressure to InfluxDB: ", err)
 				}
 			}
 		})
