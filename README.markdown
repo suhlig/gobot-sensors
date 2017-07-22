@@ -50,3 +50,8 @@ Ansible will also create the InfluxDB database, a R/O user for Grafana and a R/W
 # TODO
 
 * Exit on humidity read failure so that systemd restarts the daemon
+* Print the application version number at startup:
+  - Use the output of `git rev-parse --short HEAD` to get the short commit SHA
+  - Add a version variable to the go code that [needs to be set at build time](https://stackoverflow.com/a/11355611/3212907)- Check with `git diff-index --quiet HEAD -- sensors.go` whether the source file has uncommitted changes
+  - If there are uncommitted changes, append something like '_dev-$(date "+%FT%T%z")' to the last commit SHA
+  - set the variable at build time
