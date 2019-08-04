@@ -32,6 +32,8 @@ $ ansible-playbook deployment/playbook.yml
 
 Ansible will deploy the service and create a user with write privileges for the sensors bot.
 
+> Note that compilation is not part of the deployment. This has to happen in a previous CI step.
+
 ## Troubleshooting
 
 * Since the sensors bot is managed by systemd, the [usual ways](https://wiki.archlinux.org/index.php/Systemd#Troubleshooting) to inspect can be used.
@@ -49,11 +51,6 @@ Ansible will deploy the service and create a user with write privileges for the 
 
 # TODO
 
-* Cross-compile before deployment
-* Determine the SHA
-  - Use the output of `git rev-parse --short HEAD` to get the short commit SHA
-  - If `git status --porcelain` is empty, the workspace is clean
-  - If not clean, append something like '_dev-$(date "+%FT%T%z")' to the last commit SHA
 * Inject the version into the go binary [at build time](https://stackoverflow.com/a/11355611/3212907)
 * Print the application version number at startup
 * Exit on humidity read failure so that systemd restarts the daemon
