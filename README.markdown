@@ -13,7 +13,7 @@ $ GOARM=7 GOARCH=arm GOOS=linux go build sensors.go
 ## Run
 
 ```bash
-INFLUXDB_PASSWORD=bdf882e54c0fcb56ba25 ./bin/sensors --influxdb-database sandbox --influxdb-user sensors
+INFLUXDB_PASSWORD=S3CRET ./bin/sensors --influxdb-database localhost --influxdb-user sensors
 ```
 
 ## Iterate
@@ -27,10 +27,10 @@ fswatch *.go | xargs -I{} ./iterate.sh {}
 # Deployment
 
 ```bash
-ansible-playbook -i pi, deployment/playbook.yml
+$ ansible-playbook deployment/playbook.yml
 ```
 
-Ansible will also create the InfluxDB database, a R/O user for Grafana and a R/W user for the sensors bot.
+Ansible will deploy the service and create a user with write privileges for the sensors bot.
 
 ## Troubleshooting
 
@@ -49,9 +49,11 @@ Ansible will also create the InfluxDB database, a R/O user for Grafana and a R/W
 
 # TODO
 
-* Exit on humidity read failure so that systemd restarts the daemon
-* Print the application version number at startup:
+* Cross-compile before deployment
+* Determine the SHA
   - Use the output of `git rev-parse --short HEAD` to get the short commit SHA
-  - Add a version variable to the go code that [needs to be set at build time](https://stackoverflow.com/a/11355611/3212907)- Check with `git diff-index --quiet HEAD -- sensors.go` whether the source file has uncommitted changes
-  - If there are uncommitted changes, append something like '_dev-$(date "+%FT%T%z")' to the last commit SHA
-  - set the variable at build time
+  - If `git status --porcelain` is empty, the workspace is clean
+  - If not clean, append something like '_dev-$(date "+%FT%T%z")' to the last commit SHA
+* Inject the version into the go binary [at build time](https://stackoverflow.com/a/11355611/3212907)
+* Print the application version number at startup
+* Exit on humidity read failure so that systemd restarts the daemon

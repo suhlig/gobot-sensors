@@ -1,3 +1,4 @@
+.vault-password
 deployment/playbook.retry
 deployment/private-variables.yml
 sensors

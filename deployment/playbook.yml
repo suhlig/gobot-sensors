@@ -1,11 +1,60 @@
 ---
 - name: Deploy the sensors bot
   hosts: all
+  become: true
+  gather_facts: false
 
-  vars_files:
-    - shared-variables.yml
-    - private-variables.yml
+  tasks:
+  - name: Create influxdb user with write-only access
+    shell: "influx
+              -host '{{ influxdb_host }}'
+              -ssl
+              -port {{ influxdb_port }}
+              -username {{ influxdb_admin_user }}
+              -password {{ influxdb_admin_password }}
+              -execute \"CREATE USER {{ influxdb_user }} WITH PASSWORD '{{ influxdb_user_password }}';
+                         GRANT WRITE ON {{ influxdb_database }} TO {{ influxdb_user }};\""
+    tags: influxdb
 
-  roles:
-    - influxdb-client
-    - sensors
+  - name: Render the service template
+    template:
+      src: sensors.service.j2
+      dest: /etc/systemd/system/sensors.service
+      mode: "0664"
+    tags: systemd
+
+  - name: Copy the binary
+    copy:
+      src: "{{ playbook_dir }}/../sensors"
+      dest: "/usr/local/bin/sensors"
+      mode: "0755"
+
+  - name: Enable and start the service
+    systemd:
+      name: sensors
+      daemon-reload: true
+      state: restarted
+      enabled: true
+    tags: systemd
+
+  - name: Python modules are present
+    pip:
+      name:
+      - influxdb
+    tags: influxdb, python, pip
+
+  - name: Write deployment event info
+    influxdb_write:
+      hostname: "{{ influxdb_host }}"
+      ssl: true
+      port: "{{ influxdb_port }}"
+      username: "{{ influxdb_user }}"
+      password: "{{ influxdb_user_password }}"
+      database_name: "{{influxdb_database}}"
+      data_points:
+        - measurement: events
+          tags:
+            host: "{{ inventory_hostname }}"
+          fields:
+            title: "Deployment of version {{ sensors_version }}"
+    tags: influxdb
