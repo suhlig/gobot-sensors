@@ -4,7 +4,37 @@
   become: true
   gather_facts: false
 
+  vars:
+    sensors_version: unknown
+    ansible_python_interpreter: auto
+
   tasks:
+  - name: Determine git status
+    command: "git status --porcelain"
+    delegate_to: localhost
+    register: git_status_result
+    become: false
+    tags: git
+
+  - name: Determine git SHA
+    command: "git rev-parse --short HEAD"
+    delegate_to: localhost
+    register: git_sha_result
+    become: false
+    tags: git
+
+  - name: Append a star to the version because the current workspace is dirty
+    set_fact:
+      sensors_version: "{{ git_sha_result.stdout }}*"
+    when: "(git_status_result is succeeded) and (git_status_result.stdout | length)"
+    tags: git
+
+  - name: Use the pure git SHA as version because the current workspace is clean
+    set_fact:
+      sensors_version: "{{ git_sha_result.stdout }}"
+    when: "(git_status_result is succeeded) and not (git_status_result.stdout | length)"
+    tags: git
+
   - name: Create influxdb user with write-only access
     shell: "influx
               -host '{{ influxdb_host }}'
@@ -57,4 +87,4 @@
             host: "{{ inventory_hostname }}"
           fields:
             title: "Deployment of version {{ sensors_version }}"
-    tags: influxdb
+    tags: influxdb, events
