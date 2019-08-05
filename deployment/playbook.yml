@@ -35,17 +35,6 @@
     when: "(git_status_result is succeeded) and not (git_status_result.stdout | length)"
     tags: git
 
-  - name: Create influxdb user with write-only access
-    shell: "influx
-              -host '{{ influxdb_host }}'
-              -ssl
-              -port {{ influxdb_port }}
-              -username {{ influxdb_admin_user }}
-              -password {{ influxdb_admin_password }}
-              -execute \"CREATE USER {{ influxdb_user }} WITH PASSWORD '{{ influxdb_user_password }}';
-                         GRANT WRITE ON {{ influxdb_database }} TO {{ influxdb_user }};\""
-    tags: influxdb
-
   - name: Render the service template
     template:
       src: sensors.service.j2
