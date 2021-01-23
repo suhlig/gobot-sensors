@@ -16,6 +16,7 @@ import (
 var influxURL = flag.String("influxdb-url", "http://localhost:8086", "URL to the InfluxDB where samples are sent to")
 var influxDatabase = flag.String("influxdb-database", "", "InfluxDB database name where samples are written to")
 var influxUsername = flag.String("influxdb-user", "", "InfluxDB user name that can write samples to the given database.")
+var i2cAddress = flag.Int("i2c-address", 0x77, "I2C address of the BME280 device")
 
 func publish(influxClient influx.Client, key string, value float64) error {
 	bp, err := influx.NewBatchPoints(influx.BatchPointsConfig{
@@ -61,7 +62,7 @@ func main() {
 	}
 
 	raspi := raspi.NewAdaptor()
-	bme280 := i2c.NewBME280Driver(raspi)
+	bme280 := i2c.NewBME280Driver(raspi, i2c.WithAddress(*i2cAddress))
 
 	influxClient, err := influx.NewHTTPClient(influx.HTTPConfig{
 		Addr:     *influxURL,
