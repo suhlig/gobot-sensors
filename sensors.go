@@ -53,7 +53,6 @@ func main() {
 	}
 
 	raspi := raspi.NewAdaptor()
-	luxSensor := i2c.NewTSL2561Driver(raspi, i2c.WithTSL2561Gain16X)
 	bme280 := i2c.NewBME280Driver(raspi)
 
 	influxClient, err := influx.NewHTTPClient(influx.HTTPConfig{
@@ -69,24 +68,6 @@ func main() {
 
 	work := func() {
 		gobot.Every(10*time.Second, func() {
-			broadband, ir, err := luxSensor.GetLuminocity()
-
-			if err != nil {
-				fmt.Println("Error reading luminocity: ", err)
-			} else {
-				light := luxSensor.CalculateLux(broadband, ir)
-
-				if light > 10000 {
-					fmt.Printf("Ignoring value of %v lux; this is an outlier.\n", light)
-				} else {
-					fmt.Printf("Light: %v lux\n", light)
-					err = publish(influxClient, "light", float64(light))
-					if err != nil {
-						fmt.Println("Error publishing light to InfluxDB: ", err)
-					}
-				}
-			}
-
 			humidity, err := bme280.Humidity()
 
 			if err != nil {
@@ -136,7 +117,6 @@ func main() {
 
 	robot := gobot.NewRobot("gobot",
 		[]gobot.Connection{raspi},
-		[]gobot.Device{luxSensor},
 		[]gobot.Device{bme280},
 		work,
 	)
