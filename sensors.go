@@ -27,8 +27,16 @@ func publish(influxClient influx.Client, key string, value float64) error {
 		return err
 	}
 
-	// TODO: Allow tags via command line
-	tags := map[string]string{"host": "wordclock"}
+	tags := map[string]string{}
+
+	hostname, err := os.Hostname()
+
+	if err != nil {
+		return err
+	}
+
+	tags["host"] = hostname
+
 	fields := map[string]interface{}{
 		"value": value,
 	}
