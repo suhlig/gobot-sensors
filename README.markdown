@@ -41,8 +41,8 @@ Ansible will deploy the service and create a user with write privileges for the 
     Examples:
 
     ```bash
-    systemctl status sensors # get an overview
-    journalctl --unit sensors.service -f # tail the logs
+    $ systemctl status sensors # get an overview
+    $ journalctl --unit sensors.service -f # tail the logs
     ```
 
 * If you try to read a value from the sensor and get a panic from Go, double-check that the device is registered with the framework (e.g. `[]gobot.Device{bme280}`).
@@ -53,4 +53,3 @@ Ansible will deploy the service and create a user with write privileges for the 
 
 * Inject the version into the go binary [at build time](https://stackoverflow.com/a/11355611/3212907)
 * Print the application version number at startup
-* Exit on humidity read failure so that systemd restarts the daemon

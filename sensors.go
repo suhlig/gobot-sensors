@@ -91,40 +91,45 @@ func main() {
 
 			if err != nil {
 				fmt.Println("Error reading humidity: ", err)
-			} else {
-				fmt.Printf("Humidity: %v %%\n", humidity)
-				err = publish(influxClient, "humidity", float64(humidity))
+				os.Exit(1)
+			}
+			fmt.Printf("Humidity: %v %%\n", humidity)
+			err = publish(influxClient, "humidity", float64(humidity))
 
-				if err != nil {
-					fmt.Println("Error publishing humidity to InfluxDB: ", err)
-				}
+			if err != nil {
+				fmt.Println("Error publishing humidity to InfluxDB: ", err)
+				os.Exit(1)
 			}
 
 			temperature, err := bme280.Temperature()
 
 			if err != nil {
 				fmt.Println("Error reading temperature: ", err)
-			} else {
-				fmt.Printf("Temperature: %v °C\n", temperature)
-				err = publish(influxClient, "temperature", float64(temperature))
+				os.Exit(1)
+			}
 
-				if err != nil {
-					fmt.Println("Error publishing temperature to InfluxDB: ", err)
-				}
+			fmt.Printf("Temperature: %v °C\n", temperature)
+			err = publish(influxClient, "temperature", float64(temperature))
+
+			if err != nil {
+				fmt.Println("Error publishing temperature to InfluxDB: ", err)
+				os.Exit(1)
 			}
 
 			pressure, err := bme280.Pressure()
 
 			if err != nil {
 				fmt.Println("Error reading pressure: ", err)
-			} else {
-				hPa := pressure / 100 // Grafana wants hectopascal
-				fmt.Printf("Pressure: %v hPa\n", hPa)
-				err = publish(influxClient, "pressure", float64(hPa))
+				os.Exit(1)
+			}
 
-				if err != nil {
-					fmt.Println("Error publishing pressure to InfluxDB: ", err)
-				}
+			hPa := pressure / 100 // Grafana wants hectopascal
+			fmt.Printf("Pressure: %v hPa\n", hPa)
+			err = publish(influxClient, "pressure", float64(hPa))
+
+			if err != nil {
+				fmt.Println("Error publishing pressure to InfluxDB: ", err)
+				os.Exit(1)
 			}
 		})
 	}
