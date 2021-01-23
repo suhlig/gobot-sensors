@@ -6,7 +6,7 @@
 
   vars:
     sensors_version: unknown
-    ansible_python_interpreter: auto
+    ansible_python_interpreter: /usr/bin/python
 
   tasks:
   - name: Determine git status
@@ -40,7 +40,7 @@
       src: sensors.service.j2
       dest: /etc/systemd/system/sensors.service
       mode: "0664"
-    tags: systemd
+    tags: systemd, service, template
 
   - name: Copy the binary
     copy:
