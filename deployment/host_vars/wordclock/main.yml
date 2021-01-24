@@ -1,1 +1,2 @@
+ansible_python_interpreter: /usr/bin/python
 i2c_address: 0x77

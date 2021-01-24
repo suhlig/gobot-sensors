@@ -4,21 +4,32 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
-
-	"gobot.io/x/gobot"
-	"gobot.io/x/gobot/drivers/i2c"
-	"gobot.io/x/gobot/platforms/raspi"
 
 	influx "github.com/influxdata/influxdb/client/v2"
+	"periph.io/x/conn/v3/i2c/i2creg"
+	"periph.io/x/conn/v3/physic"
+	"periph.io/x/devices/v3/bmxx80"
+	"periph.io/x/host/v3"
 )
 
 var influxURL = flag.String("influxdb-url", "http://localhost:8086", "URL to the InfluxDB where samples are sent to")
 var influxDatabase = flag.String("influxdb-database", "", "InfluxDB database name where samples are written to")
 var influxUsername = flag.String("influxdb-user", "", "InfluxDB user name that can write samples to the given database.")
-var i2cAddress = flag.Int("i2c-address", 0x77, "I2C address of the BME280 device")
+var influxPassword = flag.String("influxdb-password", "", "Password for influxdb-user.")
+var i2cBus = flag.String("i2c-bus", "", "I²C bus to use. By default the first I²C bus found is used.")
+var i2cAddress = flag.Uint("i2c-address", 0x77, "I2C address of the BME280 device")
 
-func publish(influxClient influx.Client, key string, value float64) error {
+const hecto = 100
+
+func newPoint(key string, value float64, tags map[string]string) (*influx.Point, error) {
+	fields := map[string]interface{}{
+		"value": value,
+	}
+
+	return influx.NewPoint(key, tags, fields)
+}
+
+func publish(influxClient influx.Client, measurements physic.Env) error {
 	bp, err := influx.NewBatchPoints(influx.BatchPointsConfig{
 		Database:  *influxDatabase,
 		Precision: "s",
@@ -38,17 +49,33 @@ func publish(influxClient influx.Client, key string, value float64) error {
 
 	tags["host"] = hostname
 
-	fields := map[string]interface{}{
-		"value": value,
+	if err != nil {
+		return err
 	}
 
-	pt, err := influx.NewPoint(key, tags, fields)
+	humidity, err := newPoint("humidity", float64(measurements.Humidity)/float64(physic.PercentRH), tags)
 
 	if err != nil {
 		return err
 	}
 
-	bp.AddPoint(pt)
+	bp.AddPoint(humidity)
+
+	temperature, err := newPoint("temperature", measurements.Temperature.Celsius(), tags)
+
+	if err != nil {
+		return err
+	}
+
+	bp.AddPoint(temperature)
+
+	pressure, err := newPoint("pressure", float64(measurements.Pressure)/float64(physic.Pascal)/hecto, tags)
+
+	if err != nil {
+		return err
+	}
+
+	bp.AddPoint(pressure)
 
 	return influxClient.Write(bp)
 }
@@ -61,13 +88,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	raspi := raspi.NewAdaptor()
-	bme280 := i2c.NewBME280Driver(raspi, i2c.WithAddress(*i2cAddress))
-
 	influxClient, err := influx.NewHTTPClient(influx.HTTPConfig{
 		Addr:     *influxURL,
 		Username: *influxUsername,
-		Password: os.Getenv("INFLUXDB_PASSWORD"),
+		Password: *influxPassword,
 	})
 
 	if err != nil {
@@ -75,60 +99,42 @@ func main() {
 		os.Exit(1)
 	}
 
-	work := func() {
-		gobot.Every(10*time.Second, func() {
-			humidity, err := bme280.Humidity()
+	s := bmxx80.O4x
+	opts := bmxx80.Opts{Temperature: s, Pressure: s, Humidity: s}
 
-			if err != nil {
-				fmt.Println("Error reading humidity: ", err)
-				os.Exit(1)
-			}
-			fmt.Printf("Humidity: %v %%\n", humidity)
-			err = publish(influxClient, "humidity", float64(humidity))
-
-			if err != nil {
-				fmt.Println("Error publishing humidity to InfluxDB: ", err)
-				os.Exit(1)
-			}
-
-			temperature, err := bme280.Temperature()
-
-			if err != nil {
-				fmt.Println("Error reading temperature: ", err)
-				os.Exit(1)
-			}
-
-			fmt.Printf("Temperature: %v °C\n", temperature)
-			err = publish(influxClient, "temperature", float64(temperature))
-
-			if err != nil {
-				fmt.Println("Error publishing temperature to InfluxDB: ", err)
-				os.Exit(1)
-			}
-
-			pressure, err := bme280.Pressure()
-
-			if err != nil {
-				fmt.Println("Error reading pressure: ", err)
-				os.Exit(1)
-			}
-
-			hPa := pressure / 100 // Grafana wants hectopascal
-			fmt.Printf("Pressure: %v hPa\n", hPa)
-			err = publish(influxClient, "pressure", float64(hPa))
-
-			if err != nil {
-				fmt.Println("Error publishing pressure to InfluxDB: ", err)
-				os.Exit(1)
-			}
-		})
+	if _, err := host.Init(); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not initialize I2C host: %s\n", err)
+		os.Exit(1)
 	}
 
-	robot := gobot.NewRobot("gobot",
-		[]gobot.Connection{raspi},
-		[]gobot.Device{bme280},
-		work,
-	)
+	var dev *bmxx80.Dev
+	i, err := i2creg.Open(*i2cBus)
 
-	robot.Start()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not open I2C bus: %s\n", err)
+		os.Exit(1)
+	}
+	defer i.Close()
+
+	if dev, err = bmxx80.NewI2C(i, uint16(*i2cAddress), &opts); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not create I2C device: %s\n", err)
+		os.Exit(1)
+	}
+
+	measurements := physic.Env{}
+	if err := dev.Sense(&measurements); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not read sensor: %s\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Humidity: %v\n", measurements.Humidity)
+	fmt.Printf("Temperature: %v\n", measurements.Temperature)
+	fmt.Printf("Pressure: %v\n", measurements.Pressure)
+
+	err = publish(influxClient, measurements)
+
+	if err != nil {
+		fmt.Println("Error publishing sensor data to InfluxDB: ", err)
+		os.Exit(1)
+	}
 }
