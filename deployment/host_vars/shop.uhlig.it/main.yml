@@ -1,0 +1,2 @@
+bme280_address: 0x76
+tsl2561_address: 0x39

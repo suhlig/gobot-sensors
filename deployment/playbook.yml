@@ -5,75 +5,24 @@
   gather_facts: false
 
   vars:
-    sensors_version: unknown
-    ansible_python_interpreter: auto
+    service_binary: ../sensors
 
-  tasks:
-  - name: Determine git status
-    command: "git status --porcelain"
-    delegate_to: localhost
-    register: git_status_result
-    become: false
-    tags: git
-
-  - name: Determine git SHA
-    command: "git rev-parse --short HEAD"
-    delegate_to: localhost
-    register: git_sha_result
-    become: false
-    tags: git
-
-  - name: Append a star to the version because the current workspace is dirty
-    set_fact:
-      sensors_version: "{{ git_sha_result.stdout }}*"
-    when: "(git_status_result is succeeded) and (git_status_result.stdout | length)"
-    tags: git
-
-  - name: Use the pure git SHA as version because the current workspace is clean
-    set_fact:
-      sensors_version: "{{ git_sha_result.stdout }}"
-    when: "(git_status_result is succeeded) and not (git_status_result.stdout | length)"
-    tags: git
-
-  - name: Render the service template
-    template:
-      src: sensors.service.j2
-      dest: /etc/systemd/system/sensors.service
-      mode: "0664"
-    tags: systemd
-
-  - name: Copy the binary
-    copy:
-      src: "{{ playbook_dir }}/../sensors"
-      dest: "/usr/local/bin/sensors"
-      mode: "0755"
-
-  - name: Enable and start the service
-    systemd:
-      name: sensors
-      daemon-reload: true
-      state: restarted
-      enabled: true
-    tags: systemd
-
-  - name: Python modules are present
-    pip:
-      name:
-      - influxdb
-    tags: influxdb, python, pip
-
-  - name: Write deployment event info
-    influxdb_write:
-      hostname: "{{ influxdb_host }}"
-      ssl: true
-      port: "{{ influxdb_port }}"
-      username: "{{ influxdb_user }}"
-      password: "{{ influxdb_user_password }}"
-      database_name: "{{influxdb_database}}"
-      data_points:
-        - measurement: events
-          tags:
-            host: "{{ inventory_hostname }}"
-          fields:
-            title: "Deployment of version {{ sensors_version }}"
-    tags: influxdb, events
+  roles:
+    - role: suhlig.simple_systemd_service
+      become: true
+      vars:
+        program:
+          name: sensors
+          description: Publishes sensor measurements to InfluxDB
+          binary: "{{ service_binary }}"
+          parameters:
+            - "--influxdb-url https://{{ influxdb_host }}:{{ influxdb_port }}"
+            - "--influxdb-database {{ influxdb_database }}"
+            - "--influxdb-user {{ influxdb_user }}"
+            - "--i2c-bus {{ i2c_bus }}"
+            - "--bme280-address {{ bme280_address }}"
+            - "{% if tsl2561_address is defined %}--tsl2561-address {{ tsl2561_address }}{% endif %}"
+          environment:
+            - "INFLUXDB_PASSWORD={{ influxdb_user_password }}"
+#        deployment_event_url: "{{ influxdb_url }}"
+      tags: [ sensor, gobot, temperature, celsius, humidity, percent, pressure, pascal, bme280, luminosity, lux, tsl2561, systemd, service ]

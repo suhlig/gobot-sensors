@@ -1,0 +1,2 @@
+i2c_bus: 1
+ansible_python_interpreter: auto

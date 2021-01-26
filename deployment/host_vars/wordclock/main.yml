@@ -1,0 +1,2 @@
+ansible_python_interpreter: /usr/bin/python
+bme280_address: 0x77
